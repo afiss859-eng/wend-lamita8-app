@@ -1,0 +1,31 @@
+{
+  "appId": "bf.wendlamita.app",
+  "appName": "Wend-Lamita",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "loggingBehavior": "none",
+    "backgroundColor": "#0F1923",
+    "useLegacyBridge": false
+  },
+  "plugins": {
+    "Camera": {
+      "presentationStyle": "fullscreen"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  },
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": [
+      "*.googleapis.com",
+      "*.anthropic.com",
+      "*.groq.com",
+      "openrouter.ai",
+      "generativelanguage.googleapis.com"
+    ]
+  }
+}

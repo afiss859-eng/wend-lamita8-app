@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0F1923">
+<link rel="manifest" href="manifest.json">
+<title>Wend-Lamita</title>
+<script src="js/config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0F1923;--surface:#1A2733;--surface2:#243344;--gold:#F5A623;--green:#2ECC71;--red:#E74C3C;--orange:#E67E22;--blue:#3498DB;--purple:#9B59B6;--text:#E8E0D4;--muted:#8A9BAD;--border:#2E3F50;--r:14px;--rs:8px}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px;user-select:none}
+
+/* ── AUTH ── */
+#authScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:flex-end;justify-content:center;background-image:radial-gradient(ellipse at 50% 0%,rgba(245,166,35,.15) 0%,transparent 60%)}
+.auth-box{width:100%;max-width:480px;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.auth-logo{text-align:center;padding:36px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.auth-logo-icon{width:60px;height:60px;background:var(--gold);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#0F1923;box-shadow:0 8px 30px rgba(245,166,35,.35)}
+.auth-logo-name{font-size:22px;font-weight:900}
+.auth-logo-sub{font-size:12px;color:var(--muted)}
+.auth-form{background:var(--surface);border-radius:22px 22px 0 0;padding:22px 18px 36px;border-top:1px solid var(--border)}
+.auth-title{font-size:17px;font-weight:800;margin-bottom:16px}
+.bpa{width:100%;background:var(--gold);color:#0F1923;border:none;border-radius:var(--rs);padding:14px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:4px}
+.bsa{width:100%;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:var(--rs);padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+.bda{width:100%;background:transparent;color:var(--muted);border:none;padding:10px;font-size:12px;cursor:pointer;margin-top:2px}
+.auth-sep{text-align:center;color:var(--muted);font-size:11px;margin:10px 0}
+
+/* ── APP ── */
+#appRoot{display:none;min-height:100vh;padding-bottom:80px}
+.header{background:var(--surface);padding:12px 14px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-box{width:32px;height:32px;border-radius:8px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#0F1923}
+.logo h1{font-size:15px;font-weight:800}
+.logo .sub{font-size:10px;color:var(--muted)}
+.hdr-r{display:flex;align-items:center;gap:6px}
+.hdr-btn{background:none;border:none;font-size:18px;cursor:pointer;padding:4px}
+
+/* ── SECTIONS ── */
+.section{display:none;padding:12px}
+.section.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:10px}
+.card-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px;margin-top:14px}
+.empty{text-align:center;padding:22px;color:var(--muted)}
+.empty .ei{font-size:30px;margin-bottom:6px}
+
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.dc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.dc-val{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.gold{color:var(--gold)}.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}
+.alert-row{background:var(--surface);border:1px solid var(--red);border-radius:var(--rs);padding:9px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.chart-row .cn{width:76px;font-size:11px;color:var(--muted);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-track{flex:1;background:var(--surface2);border-radius:3px;height:16px;overflow:hidden}
+.chart-fill{height:100%;background:var(--gold);border-radius:3px;display:flex;align-items:center;padding-left:5px;transition:width .5s ease}
+.chart-fill span{font-size:10px;font-weight:800;color:#0F1923}
+
+/* ── INVENTAIRE ── */
+.top-bar{display:flex;gap:8px;margin-bottom:10px}
+.search{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px;color:var(--text);font-size:14px;outline:none}
+.search:focus{border-color:var(--gold)}
+.btn-gold{background:var(--gold);color:#0F1923;border:none;border-radius:var(--rs);padding:9px 13px;font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0}
+.cats{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:5px 11px;font-size:11px;cursor:pointer;flex-shrink:0}
+.chip.active{background:var(--gold);color:#0F1923;font-weight:700;border-color:var(--gold)}
+.prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.prod-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.prod-card.low{border-color:var(--orange)}.prod-card.out{border-color:#444;opacity:.6}
+.prod-img{width:100%;aspect-ratio:1;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;overflow:hidden}
+.prod-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stock-badge{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+.sb-ok{background:var(--green);color:#fff}.sb-low{background:var(--orange);color:#fff}.sb-out{background:#444;color:#888}
+.prod-info{padding:8px}
+.pn{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc{font-size:10px;color:var(--muted);margin-bottom:4px}
+.pp{font-size:12px;font-weight:800;color:var(--gold);margin-bottom:5px}
+.qty-ctrl{display:flex;align-items:center}
+.qbtn{width:28px;height:28px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;border-radius:6px;flex-shrink:0}
+.qval{flex:1;text-align:center;font-size:13px;font-weight:800}
+
+/* ── OM ── */
+.badge-om{background:#FF6600;color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:800}
+.field{margin-bottom:10px}
+.flabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.finput{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px;color:var(--text);font-size:14px;outline:none}
+.finput:focus{border-color:var(--gold)}.finput.filled{border-color:var(--green);color:var(--green)}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.type-select{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.type-btn{flex:1;min-width:66px;padding:7px 3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:var(--rs);font-size:11px;font-weight:600;cursor:pointer;text-align:center}
+.type-btn.active{background:var(--gold);color:#0F1923;border-color:var(--gold)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.btn-retrait{background:#C0392B;color:#fff;border:none;border-radius:var(--rs);padding:12px;font-weight:800;font-size:14px;cursor:pointer}
+.btn-depot{background:#27AE60;color:#fff;border:none;border-radius:var(--rs);padding:12px;font-weight:800;font-size:14px;cursor:pointer}
+.btn-clear{width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:7px}
+.confidence{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:10px;margin-bottom:8px}
+.confidence.haute{background:rgba(46,204,113,.15);color:var(--green)}
+.confidence.moyenne{background:rgba(230,126,34,.15);color:var(--orange)}
+.confidence.basse{background:rgba(231,76,60,.15);color:var(--red)}
+.hist-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.hist-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.hi-r{background:rgba(231,76,60,.15)}.hi-d{background:rgba(46,204,113,.15)}
+.hname{font-size:13px;font-weight:700}
+.hnum{font-size:10px;color:var(--muted)}
+.hamount{font-size:13px;font-weight:800;margin-left:auto}
+.ha-r{color:var(--red)}.ha-d{color:var(--green)}
+.hist-actions{display:flex;gap:4px;margin-left:6px;flex-shrink:0}
+.hist-act-btn{background:none;border:none;font-size:14px;cursor:pointer;padding:2px}
+
+/* ── CNI HISTORIQUE ── */
+.cni-filters{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fsel{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-size:13px;outline:none}
+.fsel:focus{border-color:var(--gold)}
+.cni-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px}
+.cni-type-badge{flex-shrink:0;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;color:var(--gold);white-space:nowrap}
+.cni-info .cn-name{font-size:13px;font-weight:700}
+.cni-info .cn-num{font-size:11px;color:var(--muted);margin-top:1px}
+.cni-info .cn-date{font-size:10px;color:var(--muted)}
+.cni-txn{font-size:11px;font-weight:700;margin-left:auto;flex-shrink:0}
+.cni-txn.r{color:var(--red)}.cni-txn.d{color:var(--green)}
+.cni-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.cni-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px;text-align:center}
+.cni-stat .csv{font-size:20px;font-weight:800;color:var(--gold)}
+.cni-stat .csl{font-size:10px;color:var(--muted)}
+
+/* ── IA ── */
+.ai-chat{display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:300px}
+.ai-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 10px;scroll-behavior:smooth}
+.ai-msg{max-width:90%;padding:10px 13px;border-radius:16px;font-size:13px;line-height:1.5;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}}
+.ai-msg.user{background:var(--gold);color:#0F1923;align-self:flex-end;border-bottom-right-radius:4px;font-weight:600}
+.ai-msg.bot{background:var(--surface2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.ai-msg .ai-provider{font-size:9px;color:var(--muted);margin-top:4px}
+.ai-typing{background:var(--surface2);padding:10px 13px;border-radius:16px;border-bottom-left-radius:4px;display:none;align-self:flex-start}
+.ai-typing.show{display:flex;gap:4px;align-items:center}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:bounce 1.2s infinite}
+.ai-dot:nth-child(2){animation-delay:.2s}.ai-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(0.8);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+.ai-input-row{display:flex;gap:8px;margin-top:8px}
+.ai-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;resize:none;max-height:80px}
+.ai-input:focus{border-color:var(--gold)}
+.ai-send{width:40px;height:40px;background:var(--gold);border:none;border-radius:50%;color:#0F1923;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800}
+.ai-suggestions{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px}
+.ai-suggestions::-webkit-scrollbar{display:none}
+.ai-sug{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:5px 11px;font-size:11px;cursor:pointer;flex-shrink:0;white-space:nowrap}
+
+/* ── SCAN ── */
+#nativeCameraInput{display:none;position:absolute;left:-9999px}
+#scanScreen{position:fixed;inset:0;background:#000;z-index:500;display:none;flex-direction:column}
+#scanScreen.open{display:flex}
+#scanVideo{width:100%;height:100%;object-fit:cover}
+.scan-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:88%;max-width:340px;aspect-ratio:1.6;border:3px solid var(--gold);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.55)}
+.scan-label{margin-top:14px;color:#fff;font-size:13px;font-weight:600;background:rgba(0,0,0,.5);padding:5px 14px;border-radius:18px}
+.scan-status{margin-top:5px;font-size:11px;color:var(--gold);font-weight:700;min-height:15px;max-width:90%;text-align:center;white-space:pre-line}
+.scan-close{position:absolute;top:46px;right:14px;background:rgba(0,0,0,.6);border:none;color:#fff;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;z-index:10;pointer-events:all}
+.scan-shutter{position:absolute;bottom:46px;left:50%;transform:translateX(-50%);background:var(--gold);border:none;color:#0F1923;width:64px;height:64px;border-radius:50%;font-size:24px;cursor:pointer;pointer-events:all;box-shadow:0 4px 20px rgba(245,166,35,.5)}
+#scanCanvas{display:none}
+.scan-fallback{position:absolute;bottom:128px;left:50%;transform:translateX(-50%);pointer-events:all;display:none}
+.scan-fallback label{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:18px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;display:block}
+.ocr-loader{display:none;position:absolute;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:20}
+.ocr-loader.show{display:flex}
+.spinner{width:38px;height:38px;border:4px solid rgba(245,166,35,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── STATS ── */
+.period-row{display:flex;gap:6px;margin-bottom:12px}
+.pbtn{flex:1;padding:7px;border:1px solid var(--border);background:var(--surface);border-radius:var(--rs);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+.pbtn.active{background:var(--gold);color:#0F1923;border-color:var(--gold)}
+.stat-big{background:var(--surface);border-radius:var(--r);padding:14px;border:1px solid var(--border);margin-bottom:8px;text-align:center}
+.sb-label{font-size:10px;color:var(--muted);margin-bottom:3px}
+.sb-val{font-size:26px;font-weight:800;color:var(--gold)}
+.txn-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:9px 11px;display:flex;justify-content:space-between;margin-bottom:5px}
+.txn-left .tn{font-size:13px;font-weight:700}
+.txn-left .tt{font-size:10px;color:var(--muted)}
+.txn-amount{font-size:13px;font-weight:800;color:var(--green)}
+
+/* ── ADMIN ── */
+.admin-login{text-align:center;padding:30px 20px}
+.admin-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.admin-kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.akc-val{font-size:22px;font-weight:800;color:var(--gold)}
+.akc-label{font-size:10px;color:var(--muted)}
+.log-item{padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start;font-size:12px}
+.log-time{color:var(--muted);flex-shrink:0;font-size:10px}
+.log-action{font-weight:700;flex-shrink:0}
+.log-detail{color:var(--muted);font-size:11px}
+.admin-danger{border-color:var(--red)}
+.badge-admin{background:var(--red);color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:800}
+
+/* ── CONFIG ── */
+.engine-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:flex-end}
+.overlay.open{display:flex}
+.modal{background:var(--surface);width:100%;border-radius:20px 20px 0 0;padding:16px;max-height:92vh;overflow-y:auto}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 12px}
+.modal h2{font-size:16px;font-weight:800;margin-bottom:12px}
+.form-group{margin-bottom:10px}
+.flabel2{font-size:11px;color:var(--muted);margin-bottom:4px;display:block}
+.finput2{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px 11px;color:var(--text);font-size:14px;outline:none}
+.finput2:focus{border-color:var(--gold)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.img-pick{width:100%;aspect-ratio:2;background:var(--surface2);border:2px dashed var(--border);border-radius:var(--rs);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;margin-bottom:10px}
+.img-pick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tags-row{display:flex;gap:5px;flex-wrap:wrap}
+.tag{padding:5px 9px;border-radius:13px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);cursor:pointer}
+.tag.sel{background:var(--gold);color:#0F1923;border-color:var(--gold)}
+.btn-save{width:100%;background:var(--gold);color:#0F1923;border:none;border-radius:var(--rs);padding:13px;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px}
+.btn-cancel{width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:5px}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:200}
+.nav-btn{flex:1;padding:8px 2px 12px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav-btn .ni{font-size:18px}
+.nav-btn .nl{font-size:8px;font-weight:600;color:var(--muted)}
+.nav-btn.active .nl{color:var(--gold)}
+.nav-btn:not(.active) .ni{opacity:.4}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(46,204,113,.95);color:#fff;padding:9px 16px;border-radius:22px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:all .22s;pointer-events:none;white-space:nowrap;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:rgba(231,76,60,.95)}
+
+/* Plan badge */
+.plan-badge{padding:2px 7px;border-radius:10px;font-size:10px;font-weight:800}
+.limit-banner{background:rgba(231,76,60,.1);border:1px solid var(--red);border-radius:var(--rs);padding:9px 12px;margin-bottom:10px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.limit-banner button{background:var(--gold);color:#0F1923;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH ═══ -->
+<div id="authScreen"></div>
+
+<!-- ═══ APP ═══ -->
+<div id="appRoot">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-box">WL</div>
+    <div><h1>Wend-Lamita</h1><div class="sub" id="shopSub">Gestion commerce</div></div>
+  </div>
+  <div class="hdr-r">
+    <div id="planBadge"></div>
+    <button class="hdr-btn" onclick="AuthUI.showPlans()" title="Plans">⭐</button>
+    <button class="hdr-btn" onclick="confirmLogout()" title="Déconnexion">🔓</button>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="section active" id="sec-dash">
+  <div id="limitBanner"></div>
+  <div class="dash-grid">
+    <div class="dash-card"><div class="dc-label">Stock total</div><div class="dc-val gold" id="ds-stock">0</div></div>
+    <div class="dash-card"><div class="dc-label">Valeur stock</div><div class="dc-val gold" id="ds-val">0 F</div></div>
+    <div class="dash-card"><div class="dc-label">Ventes auj.</div><div class="dc-val green" id="ds-sales">0</div></div>
+    <div class="dash-card"><div class="dc-label">Stock bas</div><div class="dc-val red" id="ds-low">0</div></div>
+  </div>
+  <div class="sec-title">⚠️ Alertes stock</div>
+  <div id="dashAlerts"></div>
+  <div class="sec-title">📊 Top ventes aujourd'hui</div>
+  <div id="dashChart"></div>
+</div>
+
+<!-- ═══ INVENTAIRE ═══ -->
+<div class="section" id="sec-inv">
+  <div class="top-bar">
+    <input class="search" type="text" placeholder="🔍 Rechercher..." id="searchInput" oninput="filterProds()">
+    <button class="btn-gold" onclick="openAdd()">+ Ajouter</button>
+  </div>
+  <div class="cats" id="catFilter"></div>
+  <div class="prod-grid" id="prodGrid"></div>
+</div>
+
+<!-- ═══ ORANGE MONEY ═══ -->
+<div class="section" id="sec-om">
+  <div class="card">
+    <div class="card-title">📱 Orange Money <span class="badge-om">AGENT</span></div>
+    <div class="flabel">Type de pièce</div>
+    <div class="type-select">
+      <div class="type-btn active" onclick="setType(this,'CNIB')">🪪 CNIB</div>
+      <div class="type-btn" onclick="setType(this,'PASSEPORT')">📘 Passeport</div>
+      <div class="type-btn" onclick="setType(this,'CONSULAIRE')">🏛 Consulaire</div>
+      <div class="type-btn" onclick="setType(this,'MILITAIRE')">🎖 Militaire</div>
+    </div>
+    <button onclick="startScan()" style="width:100%;background:var(--surface2);border:2px dashed var(--gold);border-radius:var(--r);padding:16px;color:var(--gold);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:5px;display:flex;align-items:center;justify-content:center;gap:8px" id="scanBtn">
+      📷 Photographier la pièce d'identité
+    </button>
+    <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:transparent;border:1px solid var(--border);border-radius:var(--rs);padding:9px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:12px">
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileInput(this)">
+      🖼 Choisir depuis la galerie
+    </label>
+    <div id="cameraContextInfo" style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px;display:none"></div>
+    <div id="ocrConfidence" style="display:none" class="confidence haute">✅ Lecture haute confiance</div>
+    <div class="field"><div class="flabel">Nom complet</div><input type="text" class="finput" id="omNom" placeholder="Nom et prénom"></div>
+    <div class="field-grid">
+      <div class="field"><div class="flabel">N° pièce</div><input type="text" class="finput" id="omCni" placeholder="B123456789"></div>
+      <div class="field"><div class="flabel">Date naissance</div><input type="text" class="finput" id="omDob" placeholder="JJ/MM/AAAA"></div>
+    </div>
+    <div class="field"><div class="flabel">Référence / Nature</div><input type="text" class="finput" id="omRef" placeholder="CNIB – Burkina Faso"></div>
+    <div class="field-grid">
+      <div class="field"><div class="flabel">N° OM client</div><input type="text" class="finput" id="omNum" placeholder="07XXXXXXXX"></div>
+      <div class="field"><div class="flabel">N° destinataire</div><input type="text" class="finput" id="omDest" placeholder="07XXXXXXXX"></div>
+    </div>
+    <div class="field-grid">
+      <div class="field"><div class="flabel">Solde avant (F)</div><input type="number" class="finput" id="omAvant" placeholder="0" oninput="calcApres()"></div>
+      <div class="field"><div class="flabel">Montant (F)</div><input type="number" class="finput" id="omMontant" placeholder="0" oninput="calcApres()"></div>
+    </div>
+    <div class="field"><div class="flabel">Solde après (auto)</div><input type="number" class="finput" id="omApres" readonly style="opacity:.7"></div>
+    <div class="btn-row">
+      <button class="btn-retrait" onclick="saveOM('retrait')">💸 Retrait</button>
+      <button class="btn-depot" onclick="saveOM('depot')">💰 Dépôt</button>
+    </div>
+    <button class="btn-clear" onclick="clearOM()">🔄 Nouveau client</button>
+  </div>
+  <div class="sec-title">Historique transactions</div>
+  <div id="omHistory"></div>
+</div>
+
+<!-- ═══ CNI HISTORIQUE ═══ -->
+<div class="section" id="sec-cni">
+  <div class="cni-stats-row" id="cniStatsRow"></div>
+  <div class="card">
+    <div class="card-title">🔍 Filtrer les pièces scannées</div>
+    <div class="cni-filters">
+      <input type="text" class="finput" id="cniSearch" placeholder="Rechercher par nom, N° pièce..." oninput="renderCNIHistory()">
+      <div class="filter-row">
+        <input type="date" class="finput" id="cniFrom" onchange="renderCNIHistory()">
+        <input type="date" class="finput" id="cniTo" onchange="renderCNIHistory()">
+      </div>
+      <div class="filter-row">
+        <select class="fsel" id="cniType" onchange="renderCNIHistory()">
+          <option value="TOUS">Tous types</option>
+          <option value="CNIB">CNIB</option>
+          <option value="PASSEPORT">Passeport</option>
+          <option value="CARTE_CONSULAIRE">Consulaire</option>
+          <option value="CARTE_MILITAIRE">Militaire</option>
+        </select>
+        <select class="fsel" id="cniTxn" onchange="renderCNIHistory()">
+          <option value="TOUS">Toutes opérations</option>
+          <option value="retrait">Retraits</option>
+          <option value="depot">Dépôts</option>
+        </select>
+      </div>
+      <button onclick="CNIHistory.exportCSV(getCNIFilters())" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer">📥 Exporter CSV</button>
+    </div>
+  </div>
+  <div id="cniList"></div>
+</div>
+
+<!-- ═══ IA ASSISTANT ═══ -->
+<div class="section" id="sec-ai">
+  <div class="card" style="padding:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="card-title" style="margin-bottom:0">🤖 Assistant IA</div>
+      <button onclick="clearAIChat()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer">🗑 Effacer</button>
+    </div>
+    <div class="ai-suggestions" id="aiSuggestions"></div>
+    <div class="ai-chat">
+      <div class="ai-messages" id="aiMessages">
+        <div class="ai-msg bot">👋 Bonjour ! Je suis votre assistant IA. Je connais votre stock, vos ventes et vos transactions Orange Money. Posez-moi une question !</div>
+      </div>
+      <div class="ai-typing" id="aiTyping"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>
+      <div class="ai-input-row">
+        <textarea class="ai-input" id="aiInput" placeholder="Posez votre question..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+        <button class="ai-send" onclick="sendAI()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STATS ═══ -->
+<div class="section" id="sec-stats">
+  <div id="statsLock" style="display:none" class="card">
+    <div style="text-align:center;padding:16px">
+      <div style="font-size:32px;margin-bottom:8px">🔒</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Fonctionnalité Pro</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Stats détaillées disponibles en plan Pro ou Business</div>
+      <button onclick="AuthUI.showPlans()" class="btn-gold" style="border:none;border-radius:var(--rs);padding:10px 18px;font-size:13px;cursor:pointer">Voir les plans</button>
+    </div>
+  </div>
+  <div id="statsContent">
+    <div class="period-row">
+      <div class="pbtn active" onclick="setPeriod(this,'auj')">Aujourd'hui</div>
+      <div class="pbtn" onclick="setPeriod(this,'sem')">Semaine</div>
+      <div class="pbtn" onclick="setPeriod(this,'mois')">Mois</div>
+    </div>
+    <div class="stat-big"><div class="sb-label">Chiffre d'affaires</div><div class="sb-val" id="stCA">0 F</div></div>
+    <div class="dash-grid" style="margin-bottom:12px">
+      <div class="dash-card"><div class="dc-label">Trans. OM</div><div class="dc-val gold" id="stOM">0</div></div>
+      <div class="dash-card"><div class="dc-label">Articles vendus</div><div class="dc-val green" id="stArt">0</div></div>
+      <div class="dash-card"><div class="dc-label">CNI scannées</div><div class="dc-val blue" id="stCNI">0</div></div>
+      <div class="dash-card"><div class="dc-label">Vol. OM (F)</div><div class="dc-val gold" id="stVol">0</div></div>
+    </div>
+    <div class="sec-title">Ventes récentes</div>
+    <div id="stTxn"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button onclick="Export.exportStockCSV()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer">📦 Export stock</button>
+      <button onclick="Export.exportSalesCSV()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;color:var(--text);font-size:12px;font-weight:600;cursor:pointer">📊 Export ventes</button>
+    </div>
+    <button onclick="Export.backupAll()" style="width:100%;margin-top:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:10px;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer">💾 Sauvegarde complète JSON</button>
+  </div>
+</div>
+
+<!-- ═══ CONFIG ═══ -->
+<div class="section" id="sec-cfg">
+  <div class="card">
+    <div class="card-title">🔧 Moteurs OCR</div>
+    <div id="engineStatus"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔑 Clés API</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Toutes optionnelles. HCNSEC et Gemini sont gratuits.</div>
+    <div class="field"><div class="flabel">🆓 HCNSEC — <a href="https://api.hcnsec.cn/sign-up?aff=Auq5" style="color:var(--gold)">Gratuit ~4000 crédits</a></div><input type="password" class="finput" id="cfgHCNSEC" placeholder="sk-..."></div>
+    <div class="field"><div class="flabel">🆓 Gemini Flash — <a href="https://aistudio.google.com/apikey" style="color:var(--gold)">Gratuit 1500/jour</a></div><input type="password" class="finput" id="cfgGemini" placeholder="AIza..."></div>
+    <div class="field"><div class="flabel">🆓 Groq — <a href="https://console.groq.com/keys" style="color:var(--gold)">Gratuit 30/min</a></div><input type="password" class="finput" id="cfgGroq" placeholder="gsk_..."></div>
+    <div class="field"><div class="flabel">🆓 OpenRouter — <a href="https://openrouter.ai/keys" style="color:var(--gold)">Modèles gratuits</a></div><input type="password" class="finput" id="cfgOR" placeholder="sk-or-..."></div>
+    <div class="field"><div class="flabel">Anthropic (optionnel payant)</div><input type="password" class="finput" id="cfgAnthropic" placeholder="sk-ant-..."></div>
+    <button class="btn-gold" style="width:100%;padding:11px;border:none;border-radius:var(--rs);font-size:14px;font-weight:800;cursor:pointer" onclick="saveKeys()">💾 Sauvegarder</button>
+  </div>
+  <div class="card">
+    <div class="card-title">👤 Mon compte</div>
+    <div id="accountInfo" style="font-size:13px;color:var(--muted);line-height:2"></div>
+    <button onclick="AuthUI.showPlans()" style="width:100%;margin-top:10px;background:rgba(245,166,35,.1);color:var(--gold);border:1px solid var(--gold);border-radius:var(--rs);padding:10px;font-size:13px;font-weight:700;cursor:pointer">⭐ Gérer l'abonnement</button>
+    <button onclick="showAdminLogin()" style="width:100%;margin-top:6px;background:rgba(231,76,60,.08);color:var(--red);border:1px solid var(--red);border-radius:var(--rs);padding:10px;font-size:13px;font-weight:700;cursor:pointer">🛡 Panel Admin</button>
+    <button onclick="confirmLogout()" style="width:100%;margin-top:6px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:var(--rs);padding:10px;font-size:13px;cursor:pointer">🔓 Déconnexion</button>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div class="section" id="sec-admin">
+  <div id="adminLoginView">
+    <div class="admin-login">
+      <div style="font-size:40px;margin-bottom:12px">🛡</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:6px">Panel Administrateur</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Mot de passe par défaut : <strong>admin1234</strong></div>
+      <input type="password" class="finput" id="adminPwdInput" placeholder="Mot de passe admin" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')checkAdminLogin()">
+      <button class="btn-save" onclick="checkAdminLogin()">Accéder au panel</button>
+    </div>
+  </div>
+  <div id="adminDashView" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:15px;font-weight:800">🛡 Panel Admin <span class="badge-admin">ADMIN</span></div>
+      <button onclick="lockAdmin()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer">🔒 Verrouiller</button>
+    </div>
+
+    <!-- KPIs globaux -->
+    <div class="sec-title">📊 Statistiques globales</div>
+    <div class="admin-kpi" id="adminKPI"></div>
+
+    <!-- Actions rapides -->
+    <div class="sec-title">⚡ Actions</div>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="Admin.exportFullBackup()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:11px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left">💾 Exporter sauvegarde complète</button>
+        <label style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:11px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;display:block">
+          <input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)">
+          📂 Restaurer depuis sauvegarde
+        </label>
+        <button onclick="Export.exportStockCSV()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:11px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left">📦 Export stock CSV</button>
+        <button onclick="Export.exportSalesCSV()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:11px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left">📊 Export ventes CSV</button>
+        <button onclick="CNIHistory.exportCSV()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:11px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left">🪪 Export CNI CSV</button>
+      </div>
+    </div>
+
+    <!-- Changer mot de passe admin -->
+    <div class="sec-title">🔑 Sécurité</div>
+    <div class="card">
+      <div class="form-group"><label class="flabel2">Ancien mot de passe</label><input type="password" class="finput2" id="adminOldPwd" placeholder="Mot de passe actuel"></div>
+      <div class="form-group"><label class="flabel2">Nouveau mot de passe</label><input type="password" class="finput2" id="adminNewPwd" placeholder="6 caractères min"></div>
+      <button onclick="changeAdminPwd()" class="btn-save">Changer le mot de passe</button>
+    </div>
+
+    <!-- Logs -->
+    <div class="sec-title">📋 Journal d'activité</div>
+    <div class="card" style="padding:0">
+      <div id="adminLogs" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+
+    <!-- Zone danger -->
+    <div class="sec-title" style="color:var(--red)">⚠️ Zone dangereuse</div>
+    <div class="card admin-danger">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Effacer toutes les données de stock, ventes et OM. Irréversible.</div>
+      <input type="text" class="finput2" id="resetConfirmInput" placeholder='Tapez : CONFIRMER RESET' style="margin-bottom:8px">
+      <button onclick="doAdminReset()" style="width:100%;background:var(--red);color:#fff;border:none;border-radius:var(--rs);padding:12px;font-size:14px;font-weight:800;cursor:pointer">🗑 Tout effacer</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /appRoot -->
+
+<!-- ═══ SCAN CAMÉRA ═══ -->
+<input type="file" id="nativeCameraInput" accept="image/*" capture="environment" onchange="handleNativeCamera(this)">
+<div id="scanScreen">
+  <video id="scanVideo" autoplay playsinline muted></video>
+  <canvas id="scanCanvas"></canvas>
+  <div class="scan-overlay">
+    <div class="scan-frame"></div>
+    <div class="scan-label">Cadrez la pièce dans le rectangle</div>
+    <div class="scan-status" id="scanStatus"></div>
+  </div>
+  <div class="ocr-loader" id="ocrLoader">
+    <div class="spinner"></div>
+    <div style="color:#fff;font-size:13px;font-weight:600">Analyse en cours…</div>
+    <div id="ocrLoaderStatus" style="color:var(--gold);font-size:11px;margin-top:3px"></div>
+  </div>
+  <button class="scan-close" onclick="stopScan()">✕</button>
+  <button class="scan-shutter" onclick="shoot()" id="shutterBtn">📷</button>
+  <div class="scan-fallback" id="scanFallback">
+    <label><input type="file" accept="image/*" style="display:none" onchange="handleScanFallback(this)">🖼 Choisir depuis la galerie</label>
+  </div>
+</div>
+
+<!-- MODAL PRODUIT -->
+<div class="overlay" id="addModal">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 id="modalTitle">Nouveau produit</h2>
+    <div class="img-pick" id="imgPick" onclick="document.getElementById('pImg').click()">
+      <input type="file" id="pImg" accept="image/*" style="display:none" onchange="prevImg(this)">
+      <span style="font-size:26px">📷</span>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Ajouter photo</div>
+    </div>
+    <div class="form-group"><label class="flabel2">Nom *</label><input type="text" class="finput2" id="pNom" placeholder="Ex: Riz 25kg"></div>
+    <div class="form-group"><label class="flabel2">Catégorie</label>
+      <div class="tags-row" id="catTags">
+        <div class="tag sel" onclick="selTag(this)">🌾 Alimentaire</div>
+        <div class="tag" onclick="selTag(this)">🥤 Boissons</div>
+        <div class="tag" onclick="selTag(this)">🧴 Hygiène</div>
+        <div class="tag" onclick="selTag(this)">📦 Divers</div>
+        <div class="tag" onclick="selTag(this)">📱 Électronique</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0"><label class="flabel2">Prix vente (F)</label><input type="number" class="finput2" id="pPrix" placeholder="0"></div>
+      <div class="form-group" style="margin-bottom:0"><label class="flabel2">Quantité</label><input type="number" class="finput2" id="pQty" placeholder="0"></div>
+    </div>
+    <div class="form-row" style="margin-top:8px">
+      <div class="form-group" style="margin-bottom:0"><label class="flabel2">Seuil alerte</label><input type="number" class="finput2" id="pSeuil" placeholder="5"></div>
+      <div class="form-group" style="margin-bottom:0"><label class="flabel2">Prix achat (F)</label><input type="number" class="finput2" id="pAchat" placeholder="0"></div>
+    </div>
+    <button class="btn-save" onclick="saveProd()">Enregistrer</button>
+    <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+  </div>
+</div>
+
+<!-- MODAL ABONNEMENTS -->
+<div class="overlay" id="plansOverlay">
+  <div class="modal" id="plansContent" style="max-height:88vh"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="showSec('dash',this)"><span class="ni">🏠</span><span class="nl">Accueil</span></button>
+  <button class="nav-btn" onclick="showSec('inv',this)"><span class="ni">📦</span><span class="nl">Stock</span></button>
+  <button class="nav-btn" onclick="showSec('om',this)"><span class="ni">📱</span><span class="nl">OM</span></button>
+  <button class="nav-btn" onclick="showSec('cni',this)"><span class="ni">🪪</span><span class="nl">CNI</span></button>
+  <button class="nav-btn" onclick="showSec('ai',this)"><span class="ni">🤖</span><span class="nl">IA</span></button>
+  <button class="nav-btn" onclick="showSec('stats',this)"><span class="ni">📊</span><span class="nl">Stats</span></button>
+  <button class="nav-btn" onclick="showSec('cfg',this)"><span class="ni">⚙️</span><span class="nl">Config</span></button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/camera-fix.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/om.js"></script>
+<script src="js/ocr.js"></script>
+<script src="js/cni-history.js"></script>
+<script src="js/export.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/auth-ui.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/ai-assistant.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

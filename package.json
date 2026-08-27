@@ -1,0 +1,21 @@
+{
+  "name": "wend-lamita",
+  "version": "1.0.0",
+  "description": "Gestion inventaire & Orange Money pour commerçants Burkina Faso",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && npx serve www",
+    "sync": "node build.js && npx cap sync android",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/camera": "^6.0.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "serve": "^14.0.0"
+  }
+}
